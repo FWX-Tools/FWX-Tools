@@ -1,0 +1,31 @@
+# Node
+node_modules/
+package-lock.json
+api.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+env/
+
+# Runtime files (auto-generate, gak perlu di-push)
+ddos/
+prem.json
+settings.json
+methods.json
+proxy.txt
+proxy_alive.txt
+hasil_attack.txt
+results_attack.csv
+device_config.json
+devices.db
+
+# Backup file
+tools_original.py
+api_original.js
+
+# OS
+.DS_Store
+Thumbs.db
