@@ -56,7 +56,7 @@ except ImportError:
 # =========================================================
 # CONFIG (UTAMA)
 # =========================================================
-LICENSE_API = "http://172.235.246.158:5000"
+LICENSE_API = "http://127.0.0.1:5000"
 
 CONFIG_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
