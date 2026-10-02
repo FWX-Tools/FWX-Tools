@@ -1478,7 +1478,7 @@ async function start() {
       BOT_TOKEN,
       {
         polling: true
-      }api.js
+      }
     );
 
     registerBotHandlers();
