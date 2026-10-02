@@ -1,0 +1,17 @@
+{
+  "name": "flox-tools",
+  "version": "1.0.0",
+  "description": "FloX Tools - Termux Multitool",
+  "main": "api.js",
+  "scripts": {
+    "start": "node api.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "node-telegram-bot-api": "^0.64.0",
+    "sql.js": "^1.8.0",
+    "tg-rich-messages": "^1.0.0"
+  },
+  "author": "FloX",
+  "license": "MIT"
+}
