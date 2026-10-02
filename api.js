@@ -1,635 +1,224 @@
-const express=require("express");
-const TelegramBotModule=require("node-telegram-bot-api");
-const fs=require("fs");
-const path=require("path");
-const initSqlJs=require("sql.js");
+#!/usr/bin/env node
 
-const TelegramBot=TelegramBotModule.default||TelegramBotModule.TelegramBot||TelegramBotModule;
-const app=express();
-app.use(express.json());
+const crypto = require("crypto");
+const zlib = require("zlib");
+const vm = require("vm");
 
-const PORT=2009;
-const BOT_TOKEN="8889141966:AAHNN1JeLeEN80d0RmUBYCv6DkfxHM72Cxw";
-const OWNER_USERNAME="SecondAccF";
-const OWNER_CHAT=6833144624;
-const DB_FILE=path.join(__dirname,"devices.db");
+const kFhMFLsECNbMtH = "EfPZK9tUlxdjNt92vLsq9kHSdMUdVlxRYQYRU0qgrIA2MpyGlvVekX7biPQWuPkPiIzaGgAl+mGdu+ekm7smQRqVTI/qwWgn+e4QtA==";
 
-let bot,SQL,db,rich;
+const tGFWmYVkOeEQxD = "e9Stino+0rYPS/5etmD94Ldb0pTCJWxjDajkI5uwn/4VCjHO14d0/ojsBe47OTRgKgGdE1qDcPEHKYjihV833tZhSmxQZZuTpGwccnyUmvXl8XgrpQeLtV1+VLLUwSWiv8RQU1QtFkLBvMeatuTSJGGlGhReuD8ZN2RSPbJw1qnONEcPHAKOrTzCMvABSkJnkadhDKrgLvdFXmcUu1N09ANHgf2W7h/Mg91SwiObh7W6QyjL9+1DRxpK2FSx49EH268JLdbF4PH4bd0pbp3LsbF4WB7tr19wt4asw9SXIJ4Qx7E0II1KXO9dgxcRqbdZVfToPjC5iEHaDUsKEVw5ht7QPhfAyDJ3jlddaYfv1tbbfqbCclXpwqkVzgY/oQv502iYVgSMIVrzplf5FcLYr9FSm2yy9LTUophqawUgGlOPa1MRD5OdV7CbK4gfGQITqT6GySeBL0adEh7MM58D5riCm1MRi0nDGeXGMZlu28ziVSbsRNRjScWQ0PGviry49SWRq9oHYUmu/toJJNs7teV/Po0uwVQG3uQurjSFrubDWIgwS2HxchCjhJUn09nC0KHosQQgUSoIGTEpEYAS/cJ/j3H2DGenH5lXExCXKZZ+f8YiiLeBC7xSp+GI4o0CELJwlQR7JGzQh31XwyGC9kpuGeRcJxwEQR10zlOZO2crMxoMLDMOokvgWOkKd535HfDbUNkCYQpvPnVSouPKkujoZ";
+const RbGPXcXXvAvWTt = "1irHqVbyVbpZeqfc7iyeLEHjJvvKT1wb/sk305bvkdbIQWq+zYwQS7tK6cLmIHkfpVCPlFYEqCh7mwvPSKj0xiy88USISMcWB2VVUFw0c0Agb4jfHiqK327ftBKePQqNMiJvOHr9pcMuxUEBFO06DFzFFWppyWaiB3bkk+Dr1hbc61aTfiKeLk/B8OoTlRwWZPpMpKjgjwVpLo7aEzEFqMHl0hBAvsAlD7J3uly22VaPXu1Cqqm4P0ojbJG7OtDUdCBswyl//DKgd0dIfVwI4PqtfA2nI1G+vrqtTeG/sCoQhuZJxXObii5mstIY5TF6aGcGpLiOfBoHqbap4we8+w0c9wO4TqETkDy4mgiCeuGC5tN+IcxJhRpO2g4jLU6S1+qcMDsdV8U5ciPI5r9+G4vbIHUh71ZKV5T/DIEaUk32p06RhX71baLE4mbbU0Y4OXCXf+Sh9Z31SZmXLxlTGtaelVuPlGmJq/Qif2b17xD5eKMlnpK0jCwrGwpYWhgAwN0MLAwO+hGWdYpaCkFBXQuYIQeeTbmhdOUCNFD6WoTDNTROgqu+GEErKIzDxLwiJ4CvJNzDk2pKh5Q6dX/prXKJqHoekmp+vNV2F8kWnZZwHhGbPnezWkp1USywtfNbAEJrkSYdHyDnvzdxFub5GhNl85GCYPYR8cHHa7VqEX3Gjf2Omr7Sf3utQ58l/9K6z8+3e0aoB1bF+X8mbEqBR4PNM";
+const jfBfTbawZBbuAz = "YgcvgrKSDO05TD1sqrkCyCWL4N/UCX3mJysNe2NczAxmjThM+YrlIVkUgYu6HQBTAc7Wyps3kPU4ZEoJgDpvE/4HPkSV3W0cKBHB8rGUDCvqewlwLYvcMVoQ1VEoXqSIiceZ5sv24C+LY2f1Y1GFJI5hvffTkS3SsU9B+RYtTmzNd7Xpf0stz+hvM5TCxZ2kzjEoNuEigMDg0VuEb5DC6Vuya/MB2By/NbNfUxaKLYgIBm1gd4WEwo4IpssV3YHfWyWwawrH7TdSN6OK6oOXd2NfDYKSs9lV/psF64EUNDFkXWvSCB9ZU5NQb0HG0SQge6ZqV1To3oMLjxJsF8lNqFrM2TxvwUhHK6TkenoBNWnxuiNWYO8UcCRtuA2Y0M0ZUuQiEri2N7j29wrEFhSptajcrsawFE1fKkW8eQYQAVJ2DbbKL7hxfGs44/cheHWY0q1x14DGInuOmluwPDA9tZjbjDFUyHepPfDwvjQaPypv/mJOXBlyRX59U9TTIz4y0L1RXrjYoA2v4jZlzpAmj7N0r0W1kIQYyqvXsj1fWJgCNIiwR6a1g6C6fcQ8yK+2BXcKobWGBjYEsJP9FNDv4q1IyWCBFksNFKGcPcNpDiGT1d9Us0vGhfZ6mX2xrq/simXnfYX4hqe0zvSKrhhCVzD8XUuAMPuKy1TaZKZ/3sQ/giojbMNjsUtHM8WDpV0QfRTgMmI4uDCZWsCHqHOTBTjDw";
+const aUaKvVBWzSTxqb = "oCeVLXtzJmWYAPQhCUElOMUjqYtqPTqol61Rd6HkVw5VcplMVVJEyIkc3LE/WpNgGWsnVG6Yzxo4eFtF2ew43poaY5s/F1oAZP2nhLPPDXrpgVIOCItGfUn8dOEsp0vdBKWQxL+z3bCGQZ7uh8dsKcmZYWeixQtNxmgIrP+hHGrmI1i4/+lstmGRTSlIvSahNq5jywJgCsq+/M8tAkMhEVsANW658HxtwmkoFNLAUSIBxMb47ZNsymZDlXwkZARNcqBNFC6CPKtc4r/90golJrGT7x7ZuUWNsfAXXLZCNw8MpeCUtWJOY+F1SlwjskJ4xnGBMxuGpyrXTxcI8kA1gkgoaNtlp/P5LElJtkxXlStE8gHnW/IFCyqQInVQy7flqTvOHwr7Whk4Ek+3lpGNLzQSe7uLS4VJi4sjQ6niInZ8RoYM9z6esvREVDabRufIdShzSJLJaWgMUQa6lV3G6vfbLx8m1iEXn8paiJoAG81eT6+YBepLdbvnXzhBrPAjdPsAzE2ChYRjCoaIsOhRyeAn9zrz6yxPFy9jDnFcQ/NtIhTuGsvoobJnZ1Zasp8OqjUZObIFLUcxYWSucJTtWNddbDzTk1j5FIp4yqdCjhNAGb6dDwgTPymmr3obaqOQt5T+WcmUnXCRXL2af3elU68JtONAhBcaHyrmk5iy7sdvi3Nt2ncTcsQPXY9GT1gY7d4ogR13zjtic8CO1yUOeNqKZ";
+const pLGPKmJEPsgUrN = "gY2SpwdvBwFgpwCrQB3TGONqq4ZMsrYfZ0I3CLW0dXx8tY88pKM44ZZSLUhnK1Uv4a3Jnp45BHLGVk1KJjdRxoqRkQJCQSZjamTT4zjyIGK8Y8H5g8PwzEY85Q4LPSkg6FFWiknnaWcQqAFDvCyhV8+IjvmChs7DuLISoiaLPKL+aRhFvffmAcsw7I5ChZXtjBjQaUAOV4+byc5o/vRQLn7KQZvgu46gop4SIUjZX/LgywUBVpinJ/mwluKjxsR5Xb2FnKK6ctq3Yiy6ZDicrG6W17xC/PvAfDEY00Iw+4dnK5H1myNbzmCpipmgWIdNY2wptSm8BK+ow/suiNSjRvKMwq7U3nW25I5scM+A130WmD9iNr7OCMc0b2AM/136C4vibAqw6ll4fa1vLKmZ8epPTI9mZG/sYw27b/5P9kg6/O59NSbOBCUZPPUgtJnIi+khrY2UWpXpsESGcKBE7uPBj7+UzkCPcUmvZqy4LGsZqGWjGoalEVtEUiRDIPvBKk4vE6dUoT9/ulKiZpOrMOMZLzX6gDfWMzyQ9yFrrGmhhbn8f+stB5+wZEIXRI7Le9XwNbQeIb+yTm8A/TaKG8/KHDj6QLDIP5Un7hqo/x6YXOTeNFWnfbTJA+DHDJxBLDlmfawD85dji9pbn26OM4dIg8ELoQFWaSxBAlqcLpzSBGKo+nR+j27l3vKUX0c1DWlt7m8Bdu0HtNe6xL5ApgPIC";
+const cqRTtHmbeXgbtv = "n/BxUa2Y2hQhhrlCVheXg32D+N7/KDP+9RqXtmLifiXzb+FhzQ4DvfDbIm/qWqSTTQt2fbsyzyZQJI1Q/o7vQO0npxGD48qwbgOqqqDdxUhTIZvEwBQFiUe6VD2fIG+pUT3Q0vSqCIfiPas1eFKf85Z4NE1WxzAP1uu32A0KjXqlP0x3HS1582Qyj+hob4lq7Sza8V2mG+RW+9QiNDLUmf9m9JU8mJc7UVXiNitpykGKz8h4gW9CDMVZr3JN3eB5BdVYPCT5Gm6RbNFIjPEdjf3iup7ttNdSDJkvpAFdg4tusaq5gbYVqJWvmMsW2TLrL+wsyucVCmrRjYpY7fLm4LAWuedgYNJ7KNgV6HeXJVTCEFm0vlLDx8kaISqSf7UeOQ2zOuTSuUaEEK16sxe7WqxpBgKUCnJqoaWcscH/VpHSQvQadBh+I620EDt6UJTqLqRGlQecV7+g2aXrwfkITc0mA2+WDVDrDkAlbDOKs/Yh9lEx6a/5RUvPomcNxePDwQMatghY3aOKR5uoeo0tk3bq+sU1WZsyIJwy9ts8wGUnOF/cD9AnNKr1U252EIqwLfsEOZFsktKhVQHJfmq8IpiqH2b+cXzJUSKN6Yr+3Ryxnhc7EOs9+phq8NVXB042QB2g+pOs+HHzJngAXvd+ZzKG4ec01w0widkYKAIGRQ3uzexgt9mJIpgsNRIqE3rKJS/MsT1vwdxqqgONnHm+ts9kf";
+const YqLVZUILUiXMyX = "q4S3Is+BrJ0ZlAguPu8l6ypqwmOoS+N0ZiAuOQk+qi4KHHAuAIaHlu6XZ9GvnxyHDr5pDn5WNd7PUY5HJZ95CEmn/goG4UbST+CV8yw9VhzM5jSzuRKd9+f2bhQ9FOjjDCDkulz6UlTlmSkAR9+iYGBP3wwzp3RpktqZ/DWcea/FVAzAZcdW93eMnCu18GguqU8/2Ja9LCBbY9+AjmzZCPxlPBRG9fs1S2Amc+808NDvrFT7zARvE7AFcLKkM4iwngK8zuW9XdQmBvLz03NbYGFuaemcN3g88oEfXuA5Xd07t5rYxPxZc3J8lotp6VPArwHtZ2/qNLruKXRjTIQoa9MtI4KeL2wyuQ7jhWeL4l/hXlYeFw9Cc0NWk0dBSkTgIcO3wCXjRxCk3yfBQaAulPvMTD1igVNcZ/J/deB+j1QsKaZryoFR2uLZr7IB1BRLwLUqgC1dhZlC2wkIZUnJX7Qopf5Ufrq5ZuWfv9eQwx66tTTFD3+F5RUi684e1onv/RWehr42qZiIdi4Kmaal1e2cP6Kyv8ZS5R3ySGsApJ+e96G30ZMuPPqVPmm3mtmL9MrskubQiuzYEQmFV7s0gDO4pgrDXrHZG0eYrdvCjzWuUvMQXUdlNM/ze4mlSpYm+PFUtRu2/GuBP0rZDtTdFckYhhj6WtkfEYZOzPXFAD3cHbeF1MMnKM2v5p7pyWeMwwQXBnlY3ZmXGXBMMed/8gDQm";
+const zGbEsPZMGnsqdv = "EOk5sZ+suzFAhF9q6jCl+d+h0JpS2OGGFuD/hv2TSPrEOMe7ZA07VasrMV/G5C/NAFIneL1N3H6k10XtbVwkSCgj2cCn2VvEyTz3MYCnV9g5mc7bXp3QPebKZfplL3mtQGWzsIgIx1zuXHcwSRT3ZIqQWx8Rp9govyLymyVTG9wjiKYPdl6LdHijUFfenovNfUJS8ULGWxVRUsQXQNWO62ivvxehf9NHxI53E+hEIQMj01kqNBvadJslTPWep19h41BKfIckU2PYCXizZAjo5GPnZR7TVcQtRr9s5ZXnjwYwksaagr0v1ILKwUXDeXhtwX+c0sdXiDs/K/vNrivk9DqIV1NrVVuy/Z5IkSI2pb7ba6wtdo4IwTweS5MYH9ZL86hIvW1BW9KNEHXoHOUQT1QKFg2vFwAq3dqCPl6qc7LMzS0ribyjmTBn6hevzBjHVINQ72RCESh2RDU5irnMbjE3q9onMg6xn+ZBKzvhPFYXjzv7/O61+8bv8Dy9t8xXXjv7IsLb2TV60mmleigVJJRzUFERZYKnWXER5V9PO7hxldU/FK7AYpcodGb8jgWKV2Zh0uIkIz6Ke0sN3PrPNIXOXzA9hztrIL58ixs5EEFEJqiA0GXBOxFC8t0aB+e8Hk1Mvc5AY6iWWuBDrUaqSZTg0re42HR9oHC4z5IbcOKnzc6+wchSJ3PXGs8HbN7BvVL/HufJHsWcP3NAVJiQ=";
 
-async function loadRich(){
-  if(!rich)rich=await import("tg-rich-messages");
-  return rich;
-}
+const dLqkjkYHqdDLmA = "api.js";
 
-if(!BOT_TOKEN){
-  console.error("❌ FLOX_BOT_TOKEN belum diatur.");
-  console.error('Jalankan: export FLOX_BOT_TOKEN="TOKEN_BARU"');
-  process.exit(1);
-}
+function PfkmWrpoBUVtCY(data, key) {
+  if (!key.length) return data;
 
-async function initDatabase(){
-  SQL=await initSqlJs({
-    locateFile:file=>path.join(path.dirname(require.resolve("sql.js")),file)
-  });
+  const out = Buffer.alloc(data.length);
 
-  if(fs.existsSync(DB_FILE)){
-    db=new SQL.Database(fs.readFileSync(DB_FILE));
-    console.log("📂 Database devices.db dimuat.");
-  }else{
-    db=new SQL.Database();
-    console.log("🆕 Membuat devices.db baru.");
+  for (let i = 0; i < data.length; i++) {
+    out[i] = data[i] ^ key[i % key.length];
   }
 
-  db.run(`
-    CREATE TABLE IF NOT EXISTS devices(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      device_key TEXT UNIQUE NOT NULL,
-      buyer TEXT NOT NULL,
-      seller TEXT NOT NULL,
-      model TEXT,
-      os TEXT,
-      ip TEXT,
-      local_ip TEXT,
-      hostname TEXT,
-      cpu TEXT,
-      memory TEXT,
-      battery TEXT,
-      status TEXT DEFAULT 'pending',
-      created_at TEXT,
-      updated_at TEXT
-    )
-  `);
-
-  saveDatabase();
+  return out;
 }
 
-function saveDatabase(){
-  if(db)fs.writeFileSync(DB_FILE,Buffer.from(db.export()));
-}
-
-function dbGet(sql,params=[]){
-  const s=db.prepare(sql);
-  try{
-    s.bind(params);
-    return s.step()?s.getAsObject():undefined;
-  }finally{s.free();}
-}
-
-function dbAll(sql,params=[]){
-  const s=db.prepare(sql),rows=[];
-  try{
-    s.bind(params);
-    while(s.step())rows.push(s.getAsObject());
-    return rows;
-  }finally{s.free();}
-}
-
-function dbRun(sql,params=[]){
-  db.run(sql,params);
-  const changes=dbGet("SELECT changes() AS changes");
-  const lastID=dbGet("SELECT last_insert_rowid() AS id");
-  const result={
-    changes:Number(changes?.changes||0),
-    lastID:Number(lastID?.id||0)
-  };
-  saveDatabase();
-  return result;
-}
-
-async function telegramRequest(method,body){
-  const response=await fetch(
-    `https://api.telegram.org/bot${BOT_TOKEN}/${method}`,
-    {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify(body)
-    }
-  );
-
-  let result;
-  try{
-    result=await response.json();
-  }catch{
-    throw new Error(`Telegram API memberikan response tidak valid (${response.status})`);
-  }
-
-  if(!result.ok)throw new Error(result.description||`Telegram API error (${response.status})`);
-  return result.result;
-}
-
-function isOwner(msg){
-  return String(msg.from?.username||"").toLowerCase()===OWNER_USERNAME.toLowerCase();
-}
-
-async function playThinking(chatId,steps=[]){
-  const {doc,thinking}=await loadRich();
-  const draftId=Math.floor(Math.random()*2147483646)+1;
-
-  if(!steps.length)steps=[
-    "🔎 Mengecek perangkat...",
-    "📡 Menghubungkan ke database...",
-    "📊 Mengambil informasi...",
-    "🖼️ Menyiapkan Rich Message...",
-    "✅ Siap!"
-  ];
-
-  for(const text of steps){
-    try{
-      const payload=doc(thinking(text)).toInputRichMessage({
-        skipEntityDetection:true
-      });
-
-      await telegramRequest("sendRichMessageDraft",{
-        chat_id:chatId,
-        draft_id:draftId,
-        rich_message:payload
-      });
-    }catch(err){
-      console.log("⚠️ Thinking error:",err.message);
-    }
-
-    await new Promise(r=>setTimeout(r,500));
-  }
-
-  return draftId;
-}
-
-async function sendRich(chatId,message,options={}){
-  const payload=message.toInputRichMessage({
-    skipEntityDetection:true
-  });
-
-  return telegramRequest("sendRichMessage",{
-    chat_id:chatId,
-    rich_message:payload,
-    ...options
-  });
-}
-
-async function sendDeviceNotification(deviceKey,buyer,seller,info){
-  const {
-    doc,heading,paragraph,bold,code,blockquote
-  }=await loadRich();
-
-  const model=info.model||info.hostname||"Unknown";
-  const os=info.os||"Unknown";
-  const ip=info.ip||"Unknown";
-
-  await playThinking(OWNER_CHAT,[
-    "🔎 Perangkat baru terdeteksi...",
-    "📡 Mengambil informasi perangkat...",
-    "📊 Memproses data license...",
-    "🖼️ Menyiapkan Rich Message...",
-    "✅ Siap!"
-  ]);
-
-  const message=doc(
-    heading(2,"🆕 Perangkat Baru"),
-    paragraph([bold("Perangkat baru memasuki FloX Tools.")]),
-    paragraph("👤 USERNAME ↓"),
-    blockquote([
-      paragraph([bold("Buyer : "),buyer]),
-      paragraph([bold("Seller : "),seller])
-    ],undefined,{expandable:true}),
-    paragraph("📱 DEVICE DETAIL ↓"),
-    blockquote([
-      paragraph(["📱 Model: ",bold(model)]),
-      paragraph(["⚙️ OS: ",os]),
-      paragraph(["🔑 Device Key: ",code(deviceKey)]),
-      paragraph(["🌐 IP: ",ip])
-    ],undefined,{expandable:true}),
-    paragraph([bold("🔐 Approve dengan:")]),
-    paragraph([code(`/addtools ${deviceKey}`)])
-  );
-
-  return sendRich(OWNER_CHAT,message);
-}
-
-app.get("/",(req,res)=>{
-  res.json({
-    status:"online",
-    service:"FloX License API",
-    port:PORT
-  });
-});
-
-app.post("/register",async(req,res)=>{
-  try{
-    const data=req.body||{};
-    const deviceKey=data.device_key;
-    const buyer=String(data.buyer||"").trim();
-    const seller=String(data.seller||"").trim();
-    const info=data.device_info||{};
-
-    if(!deviceKey)
-      return res.status(400).json({
-        status:"error",
-        message:"Device Key kosong."
-      });
-
-    if(!buyer)
-      return res.status(400).json({
-        status:"error",
-        message:"Buyer kosong."
-      });
-
-    const existing=dbGet(
-      "SELECT * FROM devices WHERE device_key=?",
-      [deviceKey]
+function gcfuchazSQSHbT() {
+  try {
+    const blob = Buffer.from(
+      kFhMFLsECNbMtH,
+      "base64"
     );
 
-    if(existing)
-      return res.json({
-        status:existing.status,
-        device_key:deviceKey
-      });
-
-    const now=new Date().toISOString();
-
-    dbRun(`
-      INSERT INTO devices(
-        device_key,buyer,seller,model,os,ip,local_ip,
-        hostname,cpu,memory,battery,status,created_at,updated_at
-      )
-      VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `,[
-      deviceKey,
-      buyer,
-      seller,
-      info.model||info.hostname||"Unknown",
-      info.os||"Unknown",
-      info.ip||"Unknown",
-      info.local_ip||"Unknown",
-      info.hostname||"Unknown",
-      info.cpu||"Unknown",
-      info.memory||"Unknown",
-      JSON.stringify(info.battery||{}),
-      "pending",
-      now,
-      now
-    ]);
-
-    try{
-      await sendDeviceNotification(deviceKey,buyer,seller,info);
-    }catch(err){
-      console.error("⚠️ Gagal kirim Rich Message:",err.message);
+    if (blob.length < 32) {
+      throw new Error("Invalid metadata");
     }
 
-    res.json({
-      status:"pending",
-      device_key:deviceKey
-    });
-  }catch(err){
-    console.error("REGISTER ERROR:",err);
-    res.status(500).json({
-      status:"error",
-      message:err.message
-    });
-  }
-});
+    const salt = blob.subarray(0, 16);
+    const nonce = blob.subarray(16, 32);
+    const encryptedPayload = blob.subarray(32);
 
-app.post("/check",async(req,res)=>{
-  try{
-    const deviceKey=req.body?.device_key;
+    const filenameHash = crypto
+      .createHash("sha256")
+      .update(dLqkjkYHqdDLmA)
+      .digest()
+      .subarray(0, 8);
 
-    if(!deviceKey)
-      return res.status(400).json({
-        status:"error",
-        message:"Device Key kosong."
-      });
-
-    const device=dbGet(
-      "SELECT * FROM devices WHERE device_key=?",
-      [deviceKey]
-    );
-
-    if(!device)return res.json({status:"not_found"});
-
-    res.json({
-      status:device.status,
-      device_key:device.device_key
-    });
-  }catch(err){
-    res.status(500).json({
-      status:"error",
-      message:err.message
-    });
-  }
-});
-
-app.post("/set-status",async(req,res)=>{
-  try{
-    const {device_key,status}=req.body||{};
-
-    if(!device_key)
-      return res.status(400).json({
-        status:"error",
-        message:"Device Key kosong."
-      });
-
-    if(!["pending","approved","blocked"].includes(status))
-      return res.status(400).json({
-        status:"error",
-        message:"Status tidak valid."
-      });
-
-    const result=dbRun(`
-      UPDATE devices
-      SET status=?,updated_at=?
-      WHERE device_key=?
-    `,[status,new Date().toISOString(),device_key]);
-
-    if(!result.changes)
-      return res.status(404).json({
-        status:"not_found"
-      });
-
-    res.json({
-      status:"success",
-      device_status:status
-    });
-  }catch(err){
-    res.status(500).json({
-      status:"error",
-      message:err.message
-    });
-  }
-});
-
-async function changeStatus(deviceKey,status){
-  try{
-    const device=dbGet(
-      "SELECT * FROM devices WHERE device_key=?",
-      [deviceKey]
-    );
-
-    if(!device)return {status:"not_found"};
-
-    dbRun(`
-      UPDATE devices
-      SET status=?,updated_at=?
-      WHERE device_key=?
-    `,[status,new Date().toISOString(),deviceKey]);
-
-    return {
-      status:"success",
-      device_status:status
-    };
-  }catch(err){
-    return {
-      status:"error",
-      message:err.message
-    };
-  }
-}
-
-async function handleStatusCommand(msg,status,type){
-  try{
-    if(!isOwner(msg))
-      return bot.sendMessage(msg.chat.id,"❌ Akses ditolak.");
-
-    const key=msg.text?.split(/\s+/).slice(1).join(" ").trim();
-
-    if(!key)
-      return bot.sendMessage(
-        msg.chat.id,
-        `❌ Format:\n/${type} DEVICE_KEY`
-      );
-
-    const steps={
-      approved:[
-        "🔎 Mencari device...",
-        "📡 Memeriksa license...",
-        "🔐 Mengaktifkan perangkat...",
-        "✅ License disetujui!"
-      ],
-      blocked:[
-        "🔎 Mencari device...",
-        "📡 Memeriksa license...",
-        "🚫 Memblokir perangkat..."
-      ],
-      unblock:[
-        "🔎 Mencari device...",
-        "📡 Memeriksa status...",
-        "🔓 Membuka blokir..."
-      ]
-    };
-
-    await playThinking(msg.chat.id,steps[status==="approved"&&type==="addtools"?"approved":status==="blocked"?"blocked":"unblock"]);
-
-    const result=await changeStatus(
-      key,
-      status==="unblock"?"approved":status
-    );
-
-    if(result.status!=="success")
-      return bot.sendMessage(
-        msg.chat.id,
-        "❌ Device tidak ditemukan."
-      );
-
-    const {doc,heading,paragraph,bold,code,blockquote}=await loadRich();
-
-    let message;
-
-    if(type==="addtools"){
-      message=doc(
-        heading(2,"✅ Device Approved"),
-        paragraph([bold("Device berhasil diaktifkan.")]),
-        blockquote([
-          paragraph(["🔑 Device Key: ",code(key)]),
-          paragraph("📊 Status: APPROVED")
-        ],undefined,{expandable:true})
-      );
-    }else if(type==="blocktools"){
-      message=doc(
-        heading(2,"🚫 Device Blocked"),
-        paragraph(["Device ",code(key)," berhasil diblokir."]),
-        paragraph(["📊 Status: ",bold("BLOCKED")])
-      );
-    }else{
-      message=doc(
-        heading(2,"🔓 Device Unblocked"),
-        paragraph(["🔑 Device Key: ",code(key)]),
-        paragraph(["📊 Status: ",bold("APPROVED")])
-      );
-    }
-
-    await sendRich(msg.chat.id,message);
-  }catch(err){
-    console.error(`${type.toUpperCase()} ERROR:`,err);
-  }
-}
-
-function registerBotHandlers(){
-
-  bot.onText(/^\/addtools(?:\s+(.+))?$/i,
-    msg=>handleStatusCommand(msg,"approved","addtools")
-  );
-
-  bot.onText(/^\/blocktools(?:\s+(.+))?$/i,
-    msg=>handleStatusCommand(msg,"blocked","blocktools")
-  );
-
-  bot.onText(/^\/unblocktools(?:\s+(.+))?$/i,
-    msg=>handleStatusCommand(msg,"unblock","unblocktools")
-  );
-
-  bot.onText(/^\/listtools$/i,async msg=>{
-    try{
-      if(!isOwner(msg))
-        return bot.sendMessage(msg.chat.id,"❌ Akses ditolak.");
-
-      await playThinking(msg.chat.id,[
-        "🔎 Mengambil database...",
-        "📊 Menghitung perangkat...",
-        "🖼️ Menyiapkan daftar..."
-      ]);
-
-      const devices=dbAll(
-        "SELECT * FROM devices ORDER BY id DESC"
-      );
-
-      if(!devices.length)
-        return bot.sendMessage(
-          msg.chat.id,
-          "📭 Belum ada device."
-        );
-
-      const {
-        doc,heading,paragraph,bold,code,blockquote
-      }=await loadRich();
-
-      const blocks=[
-        heading(2,"📱 FloX Tools Devices"),
-        paragraph([
-          "Total device: ",
-          bold(String(devices.length))
+    const layer1 = crypto
+      .createHash("sha256")
+      .update(
+        Buffer.concat([
+          filenameHash,
+          Buffer.from("::L1")
         ])
-      ];
+      )
+      .digest()
+      .subarray(0, 16);
 
-      for(const device of devices){
-        blocks.push(
-          blockquote([
-            paragraph(["🔑 ",code(device.device_key)]),
-            paragraph(["👤 Buyer: ",device.buyer]),
-            paragraph(["🏪 Seller: ",device.seller]),
-            paragraph([
-              "📊 Status: ",
-              bold(String(device.status).toUpperCase())
-            ])
-          ],undefined,{expandable:true})
-        );
-      }
+    const layer2 = crypto
+      .createHash("sha256")
+      .update(
+        Buffer.concat([
+          nonce,
+          Buffer.from("::L2")
+        ])
+      )
+      .digest()
+      .subarray(0, 16);
 
-      await sendRich(msg.chat.id,doc(...blocks));
-    }catch(err){
-      console.error("LISTTOOLS ERROR:",err);
+    const layer3 = crypto
+      .createHash("sha256")
+      .update(
+        Buffer.concat([
+          salt,
+          Buffer.from("::L3")
+        ])
+      )
+      .digest()
+      .subarray(0, 16);
+
+    const blobKey = crypto
+      .createHash("sha256")
+      .update(
+        Buffer.concat([
+          layer1,
+          layer2,
+          layer3
+        ])
+      )
+      .digest();
+
+    const payload = PfkmWrpoBUVtCY(
+      encryptedPayload,
+      blobKey
+    );
+
+    if (payload.length < 44) {
+      throw new Error("Invalid payload");
     }
-  });
 
-  bot.onText(/^\/infotools(?:\s+(.+))?$/i,async msg=>{
-    try{
-      if(!isOwner(msg))
-        return bot.sendMessage(msg.chat.id,"❌ Akses ditolak.");
+    const obfDataKey =
+      payload.subarray(0, 32);
 
-      const key=msg.text?.split(/\s+/).slice(1).join(" ").trim();
+    const obfIndices =
+      payload.subarray(32, 40);
 
-      if(!key)
-        return bot.sendMessage(
-          msg.chat.id,
-          "❌ Format:\n/infotools DEVICE_KEY"
-        );
-
-      await playThinking(msg.chat.id,[
-        "🔎 Mencari device...",
-        "📡 Mengambil informasi...",
-        "📊 Menyiapkan detail..."
+    const keyMaterial =
+      Buffer.concat([
+        layer1,
+        layer2,
+        layer3
       ]);
 
-      const device=dbGet(
-        "SELECT * FROM devices WHERE device_key=?",
-        [key]
-      );
+    const dataKey = PfkmWrpoBUVtCY(
+      obfDataKey,
+      keyMaterial
+    );
 
-      if(!device)
-        return bot.sendMessage(
-          msg.chat.id,
-          "❌ Device tidak ditemukan."
-        );
+    const indices = [
+      ...PfkmWrpoBUVtCY(
+        obfIndices,
+        dataKey.subarray(0, 8)
+      )
+    ];
 
-      const {
-        doc,heading,paragraph,bold,code,blockquote
-      }=await loadRich();
+    const valid =
+      indices.length === 8 &&
+      [...indices]
+        .sort((a, b) => a - b)
+        .every((value, i) => value === i);
 
-      const message=doc(
-        heading(2,"📱 Device Information"),
-
-        paragraph([bold("🔑 Device Key")]),
-
-        paragraph(code(device.device_key)),
-
-        paragraph("👤 USERNAME ↓"),
-
-        blockquote([
-          paragraph(["Buyer: ",device.buyer]),
-          paragraph(["Seller: ",device.seller])
-        ],undefined,{expandable:true}),
-
-        paragraph("📱 DEVICE DETAIL ↓"),
-
-        blockquote([
-          paragraph(["📱 Model: ",device.model||"Unknown"]),
-          paragraph(["⚙️ OS: ",device.os||"Unknown"]),
-          paragraph(["🌐 IP: ",device.ip||"Unknown"]),
-          paragraph(["📡 Local IP: ",device.local_ip||"Unknown"]),
-          paragraph(["🖥️ Hostname: ",device.hostname||"Unknown"]),
-          paragraph(["⚙️ CPU: ",device.cpu||"Unknown"]),
-          paragraph(["💾 Memory: ",device.memory||"Unknown"]),
-          paragraph(["🔋 Battery: ",device.battery||"Unknown"]),
-          paragraph([
-            "📊 Status: ",
-            bold(String(device.status).toUpperCase())
-          ])
-        ],undefined,{expandable:true})
-      );
-
-      await sendRich(msg.chat.id,message);
-    }catch(err){
-      console.error("INFOTOOLS ERROR:",err);
+    if (!valid) {
+      throw new Error("Invalid index metadata");
     }
-  });
-}
 
-async function start(){
-  try{
-    console.log("🔄 Menginisialisasi database...");
-    await initDatabase();
+    const parts = [
+      tGFWmYVkOeEQxD,
+      RbGPXcXXvAvWTt,
+      jfBfTbawZBbuAz,
+      aUaKvVBWzSTxqb,
+      pLGPKmJEPsgUrN,
+      cqRTtHmbeXgbtv,
+      YqLVZUILUiXMyX,
+      zGbEsPZMGnsqdv
+    ];
 
-    console.log("🔄 Menginisialisasi Telegram Bot...");
+    const ordered = new Array(8);
 
-    bot=new TelegramBot(BOT_TOKEN,{polling:true});
-    registerBotHandlers();
+    for (
+      let pos = 0;
+      pos < indices.length;
+      pos++
+    ) {
+      ordered[indices[pos]] = parts[pos];
+    }
 
-    bot.on("polling_error",error=>{
-      console.error("Telegram polling error:",error.message);
-    });
+    if (
+      ordered.some(
+        part => typeof part !== "string"
+      )
+    ) {
+      throw new Error("Invalid encrypted data");
+    }
 
-    app.listen(PORT,"0.0.0.0",()=>{
-      console.log(`
-╔══════════════════════════════════════╗
-║       FloX License API + BOT         ║
-╠══════════════════════════════════════╣
-║ API  : http://127.0.0.1:${PORT}          ║
-║ BOT  : ONLINE                         ║
-║ DB   : devices.db                     ║
-╚══════════════════════════════════════╝
-`);
-    });
-  }catch(err){
-    console.error("❌ Gagal menjalankan FloX License API:",err);
+    const encrypted = Buffer.from(
+      ordered.join(""),
+      "base64"
+    );
+
+    const compressed = PfkmWrpoBUVtCY(
+      encrypted,
+      dataKey
+    );
+
+    const source = zlib
+      .gunzipSync(compressed)
+      .toString("utf8");
+
+    const context = {
+      require,
+      module,
+      exports,
+      __filename: require("path").resolve(
+        process.argv[1]
+      ),
+      __dirname: require("path").dirname(
+        require("path").resolve(
+          process.argv[1]
+        )
+      ),
+      console,
+      process,
+      Buffer,
+      setTimeout,
+      setInterval,
+      clearTimeout,
+      clearInterval
+    };
+
+    vm.runInNewContext(
+      source,
+      context,
+      {
+        filename: dLqkjkYHqdDLmA
+      }
+    );
+
+  } catch (err) {
+    console.error(
+      "[ERROR]",
+      err.name + ":",
+      err.message
+    );
+
     process.exit(1);
   }
 }
 
-start();
+gcfuchazSQSHbT();
